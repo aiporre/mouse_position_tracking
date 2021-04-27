@@ -24,7 +24,6 @@ class TestMouseVideo(TestCase):
     def test_get_no_background_TH(self):
         method = self.mouse_video._bkg_method
         self.mouse_video._bkg_method = 'TH'
-        self.mouse_video.invert()
         self.mouse_video.frames_no_bkg = None
         def gen():
             return random.randint(0, self.mouse_video.num_frames)
@@ -36,7 +35,6 @@ class TestMouseVideo(TestCase):
             plt.show()
 
         self.mouse_video._bkg_method = method
-        self.mouse_video.invert()
         self.mouse_video.frames_no_bkg = None
 
 

@@ -146,9 +146,9 @@ class MouseVideo:
                     self._frames_no_bkg[i] = no_bkg_frame
             else:
                 bg_substractor = createBackgroundSubtractorTH()
+                inverted_frames = 255 -self.frames
                 for i in range(self.num_frames):
-                    no_bkg_frame = bg_substractor.apply(self.frames[i])
-                    # self._frames_no_bkg[i] = np.tile(no_bkg_frame, (3, 1, 1)).transpose(2, 1, 0)
+                    no_bkg_frame = bg_substractor.apply(inverted_frames[i])
                     self._frames_no_bkg[i] = no_bkg_frame
 
         return self._frames_no_bkg

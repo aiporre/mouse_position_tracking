@@ -1,6 +1,14 @@
-#include <iostream>
+#include <opencv2/core/core.hpp>
+#include <opencv2/highgui/highgui.hpp>
 
-int main() {
-    std::cout << "Hello, World!" << std::endl;
+using namespace cv;
+
+int main()
+{
+    Mat image;// new blank image
+    image = cv::imread("active.PNG", 0);// read the file
+    namedWindow( "Display window", CV_WINDOW_AUTOSIZE );// create a window for display.
+    imshow( "Display window", image );// show our image inside it.
+    waitKey(0);// wait for a keystroke in the window
     return 0;
 }

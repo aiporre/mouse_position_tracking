@@ -13,7 +13,7 @@ class TestMouseVideo(TestCase):
             return random.randint(0, self.mouse_video.num_frames-1)
         indices = [gen() for i in range(10)]
         for index in range(self.mouse_video.num_frames):
-            frame = self.mouse_video.detect_mouse(index, plot=True)
+            frame, roi = self.mouse_video.detect_mouse(index, plot=True)
             plt.imshow(frame)
             plt.title(f'this is the frame from the index {index}')
             plt.show()

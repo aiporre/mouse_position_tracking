@@ -55,72 +55,12 @@ class BackgroundSubtractorTH:
     def apply(self, frame):
         if self.init_frame is not None:
             frame = frame - self.init_frame
-
-        # mask = cv2.inRange(frame, self.threshold * 255.0, 255.0)
-        # ---------> in numpy...
-        # frame = frame.astype(float)
-        # value = 3*[int(self.threshold*255)]
-        # frame[frame < value] = 0
-        # # frame[frame >= value] = 1
-        # frame_r = frame[:,:,0]
-        # frame_g = frame[:,:,1]
-        # frame_b = frame[:,:,2]
-        # frame_r = frame_r*frame_g*frame_b
-        #
-        # frame = np.stack([frame_r, frame_r, frame_r], axis=-1)
-        # cv2.normalize(frame,frame, 0, 255, cv2.NORM_MINMAX)
-        #
-        # frame[frame < value] = 0
-        # frame[frame >= value] = 1
-        # cv2.normalize(frame,frame, 0, 255, cv2.NORM_MINMAX)
-        #
-        # ===> adaptive opencv....
         frame_gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
         value = int(self.threshold * 255)
         ret, th1 = cv2.threshold(frame_gray, value, 255, cv2.THRESH_BINARY)
 
         frame = np.stack([th1, th1, th1], axis=-1)
         cv2.normalize(frame, frame, 0, 255, cv2.NORM_MINMAX)
-        # print(frame.max())
-
-        # if self._track_window == None:
-        #     x = np.where(frame == np.amax(frame))
-        #     self._track_window =  (int(x[1][0])-50, int(x[0][0])-50, 200, 200)
-        #     print('track window = ', self._track_window)
-        #
-        # x, y, w, h = self._track_window
-        # track_window = (x, y, w, h)
-        #
-        # # set up the ROI for tracking
-        # roi = frame[y:y + h, x:x + w]
-        # hsv_roi = cv2.cvtColor(roi, cv2.COLOR_BGR2HSV)
-        # mask = cv2.inRange(hsv_roi, np.array((0., 0., 200.)), np.array((30., 50., 255.)))
-        # roi_hist = cv2.calcHist([hsv_roi], [0], mask, [180], [0, 180])
-        # cv2.normalize(roi_hist, roi_hist, 0, 255, cv2.NORM_MINMAX)
-        #
-        # # Setup the termination criteria, either 10 iteration or move by atleast 1 pt
-        # term_crit = (cv2.TERM_CRITERIA_EPS | cv2.TERM_CRITERIA_COUNT, 100, 1)
-        # hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-        # dst = cv2.calcBackProject([hsv], [0], roi_hist, [0, 180], 1)
-        #
-        # # # apply meanshift to get the new location
-        # # ret, track_window = cv2.meanShift(dst, track_window, term_crit)
-        # # # Draw it on image
-        # # x, y, w, h = track_window
-        # # img2 = cv2.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
-        #
-        #
-        # # apply camshift to get the new location
-        # ret, track_window = cv2.CamShift(dst, track_window, term_crit)
-        # # Draw it on image
-        # pts = cv2.boxPoints(ret)
-        # pts = np.int0(pts)
-        # # img2 = cv2.polylines(frame, [pts], True, 255, 2)
-        # x, y, w, h = track_window
-        # img2 = cv2.rectangle(frame, (x, y), (x + w, y + h), 255, 2)
-        #
-        #
-        # self._track_window = track_window
         return frame
 
 
@@ -156,12 +96,13 @@ class MouseVideo:
         return self._frames_no_bkg
 
     def detect_mouse(self, frame_index, plot=False):
-        '''
+        """
         Calculate bounding box containing the mouse location.
 
+        :param plot: activate calculation of frame and text on the out put image
         :param frame_index: index of the frame in the video
         :return: list of four values formed by bottom left corner and top right corner cords
-        '''
+        """
         assert frame_index < self.num_frames, f' {frame_index} < {self.num_frames}'
         no_background_frame = self.frames_no_bkg[frame_index]
         gray_image = cv2.cvtColor(no_background_frame, cv2.COLOR_BGR2GRAY)
@@ -180,8 +121,6 @@ class MouseVideo:
 
         # put text and highlight the center
         frame = self.frames[frame_index]
-        cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
-        cv2.putText(frame, "ROI", (cX - 25, cY - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
         shift_x, shift_y = (self.roi_dims[0]//2, self.roi_dims[1]//2)
         down_left_x = 0 if cX - shift_x < 0 else cX - shift_x
         down_left_y = 0 if cY - shift_y < 0 else cY - shift_y
@@ -189,6 +128,8 @@ class MouseVideo:
         up_right_y = frame.shape[1] if cY + shift_y < 0 else cY + shift_y
         roi_cords = (down_left_x, down_left_y), (up_right_x, up_right_y)
         if plot:
+            cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
+            cv2.putText(frame, "ROI", (cX - 25, cY - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             return cv2.rectangle(frame, (down_left_x, down_left_y), (up_right_x, up_right_y), 255, 2), roi_cords
         else:
             return roi_cords
@@ -209,5 +150,9 @@ class MouseVideo:
         self._frames_no_bkg = self.remove_background()
 
     def invert(self):
+        '''
+        invert frames stored
+        :return:
+        '''
         for i in range(self.num_frames):
             self.frames[i] = 255 - self.frames[i]

@@ -155,7 +155,7 @@ class MouseVideo:
 
         return self._frames_no_bkg
 
-    def detect_mouse(self, frame_index):
+    def detect_mouse(self, frame_index, plot=False):
         '''
         Calculate bounding box containing the mouse location.
 
@@ -187,8 +187,11 @@ class MouseVideo:
         down_left_y = 0 if cY - shift_y < 0 else cY - shift_y
         up_right_x = frame.shape[0] if cX + shift_x < 0 else cX + shift_x
         up_right_y = frame.shape[1] if cY + shift_y < 0 else cY + shift_y
-        cv2.rectangle(frame, (down_left_x, down_left_y), (up_right_x, up_right_y), 255, 2)
-        return frame
+        roi_cords = (down_left_x, down_left_y), (up_right_x, up_right_y)
+        if plot:
+            return cv2.rectangle(frame, (down_left_x, down_left_y), (up_right_x, up_right_y), 255, 2), roi_cords
+        else:
+            return roi_cords
 
     @property
     def frames_no_bkg(self):

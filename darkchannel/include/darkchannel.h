@@ -1,0 +1,14 @@
+//
+// Created by Ariel on 02.05.2021.
+//
+
+#ifndef MOUSE_POSITION_TRACKING_DARKCHANNEL_H
+#define MOUSE_POSITION_TRACKING_DARKCHANNEL_H
+
+
+class darkchannel {
+
+};
+
+
+#endif //MOUSE_POSITION_TRACKING_DARKCHANNEL_H

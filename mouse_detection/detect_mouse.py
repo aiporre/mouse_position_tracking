@@ -76,6 +76,67 @@ def createBackgroundSubtractorTH(init_image=None, bkg_threshold=0.93):
     return BackgroundSubtractorTH(init_frame=init_image, threshold=bkg_threshold)
 
 
+def _remove_blackchannel(img):
+    w = 0.98
+    miu = 0.95
+    ##
+    # Calculate A
+    I_inv = 255.0 - img
+    I_min = np.min(I_inv, axis=2)
+
+    kernel = np.ones((3, 3), np.float32) / 9
+
+    def medfilt2(_img):
+        return cv2.filter2D(_img, -1, kernel)
+
+    # I_min_med=medfilt2(I_min);
+    I_min_med = medfilt2(I_min)
+
+    A = np.max(I_min_med)
+
+    # %%
+    # %Calculate Ac
+    I_inv_r = I_inv[:, :, 2]  # takes red channel
+    # I_r_med=medfilt2(I_inv_r) # applies the median filter to that
+    I_r_med = cv2.filter2D(I_inv_r, -1, kernel)
+    A_r = np.max(I_r_med)
+
+    I_inv_g = I_inv[:, :, 1]
+    I_g_med = medfilt2(I_inv_g)
+    A_g = np.max(I_g_med)
+
+    I_inv_b = I_inv[:, :, 0];
+    I_b_med = cv2.filter2D(I_inv_b, -1, kernel)
+    A_b = np.max(I_b_med)
+
+    I_inv_A = np.empty_like(img, dtype='float32')
+    I_inv_A[:, :, 2] = I_inv_b / A_r
+    I_inv_A[:, :, 1] = I_inv_b / A_g
+    I_inv_A[:, :, 0] = I_inv_b / A_b
+
+    ##
+    I_dark_til = np.min(I_inv_A, axis=2)
+    I_med = medfilt2(I_dark_til)
+
+    I_detail = medfilt2(np.abs(I_med - I_dark_til))
+    I_smooth = I_med - I_detail
+
+    I_dark_cal = np.empty((img.shape[0], img.shape[1], 2))
+    I_dark_cal[:, :, 0] = miu * I_dark_til
+    I_dark_cal[:, :, 1] = I_smooth
+
+    I_dark = np.min(I_dark_cal, 2);
+    t = 1.0 - w * I_dark
+
+    J_inv = (I_inv - A) / np.stack([t, t, t], axis=-1) + A
+
+    J = 255.0 - J_inv
+
+    return np.clip(J, 0, 255)
+    # return J.astype('uint8')
+
+
+
 class MouseVideo:
     def __init__(self, vpath, bkg_method='MOG', bkg_threshold=0.93, roi_dims=(260, 260)):
         self.vpath = vpath

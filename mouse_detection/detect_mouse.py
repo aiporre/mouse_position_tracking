@@ -3,6 +3,14 @@ import numpy as np
 import matplotlib.pyplot as plt
 
 
+def write_video(filepath, shape, fps=30):
+    fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
+    video_height, video_width, CHANNELS = shape
+    video_filename = filepath
+    writer = cv2.VideoWriter(video_filename, fourcc, fps, (video_width, video_height), isColor=True)
+    return writer
+
+
 def read_video(video_path, block=False, num_blocks=None, index=None):
     '''
     Read video in blocks or directly in memory, if block mode is selected reads only block by index
@@ -24,7 +32,7 @@ def read_video(video_path, block=False, num_blocks=None, index=None):
     ret = True
     if not block:
         buf = np.empty((frameCount, frameHeight, frameWidth, 3), np.dtype('uint8'))
-        while (fc < frameCount and ret):
+        while fc < frameCount and ret:
             ret, buf[fc] = cap.read()
             fc += 1
         cap.release()
@@ -78,6 +86,14 @@ class MouseVideo:
         self.bkg_threshold = bkg_threshold
         self.roi_dims = roi_dims
 
+    def remove_darkchannel(self, inplace = False):
+        darkframes = np.empty_like(self.frames)
+        for i, f in enumerate(self.frames):
+            darkframes[i] = _remove_blackchannel(f)
+        if inplace:
+            self.frames = darkframes
+        return darkframes
+
     def remove_background(self):
         if self._frames_no_bkg is None:
             self._frames_no_bkg = np.empty_like(self.frames)
@@ -121,7 +137,7 @@ class MouseVideo:
 
         # put text and highlight the center
         frame = self.frames[frame_index]
-        shift_x, shift_y = (self.roi_dims[0]//2, self.roi_dims[1]//2)
+        shift_x, shift_y = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
         down_left_x = 0 if cX - shift_x < 0 else cX - shift_x
         down_left_y = 0 if cY - shift_y < 0 else cY - shift_y
         up_right_x = frame.shape[0] if cX + shift_x < 0 else cX + shift_x
@@ -156,3 +172,10 @@ class MouseVideo:
         '''
         for i in range(self.num_frames):
             self.frames[i] = 255 - self.frames[i]
+
+    def save(self, filepath, fps=30):
+        writer = write_video(filepath, self.frames[0].shape, fps=fps)
+        for frame in self.frames:
+            writer.write(frame.astype('uint8'))
+        writer.release()
+

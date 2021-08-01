@@ -2,7 +2,7 @@
 import cv2
 import numpy as np
 import matplotlib.pyplot as plt
-
+import os
 
 def write_video(filepath, shape, fps=30):
     fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
@@ -140,6 +140,7 @@ def _remove_blackchannel(img):
 
 class MouseVideo:
     def __init__(self, vpath, bkg_method='MOG', bkg_threshold=0.93, roi_dims=(260, 260)):
+        assert os.path.exists(vpath), "Input video path is non-existing or bad argument {}".format(vpath)
         self.vpath = vpath
         self.frames = read_video(vpath)
         self.num_frames = self.frames.shape[0]
@@ -202,8 +203,8 @@ class MouseVideo:
         shift_x, shift_y = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
         down_left_x = 0 if cX - shift_x < 0 else cX - shift_x
         down_left_y = 0 if cY - shift_y < 0 else cY - shift_y
-        up_right_x = frame.shape[0] if cX + shift_x < 0 else cX + shift_x
-        up_right_y = frame.shape[1] if cY + shift_y < 0 else cY + shift_y
+        up_right_x = frame.shape[0] if cX + shift_x >= frame.shape[0] else cX + shift_x
+        up_right_y = frame.shape[1] if cY + shift_y >= frame.shape[1] else cY + shift_y
         roi_cords = (down_left_x, down_left_y), (up_right_x, up_right_y)
         if plot:
             cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)

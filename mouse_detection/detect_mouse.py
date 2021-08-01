@@ -174,7 +174,7 @@ class MouseVideo:
 
         return self._frames_no_bkg
 
-    def detect_mouse(self, frame_index, plot=False):
+    def detect_mouse(self, frame_index, plot=False, crop=False):
         """
         Calculate bounding box containing the mouse location.
 
@@ -206,10 +206,27 @@ class MouseVideo:
         up_right_x = frame.shape[0] if cX + shift_x >= frame.shape[0] else cX + shift_x
         up_right_y = frame.shape[1] if cY + shift_y >= frame.shape[1] else cY + shift_y
         roi_cords = (down_left_x, down_left_y), (up_right_x, up_right_y)
-        if plot:
+        if plot and not crop:
             cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
             cv2.putText(frame, "ROI", (cX - 25, cY - 25), cv2.FONT_HERSHEY_SIMPLEX, 0.5, (255, 255, 255), 2)
             return cv2.rectangle(frame, (down_left_x, down_left_y), (up_right_x, up_right_y), 255, 2), roi_cords
+        elif plot and crop:
+            crop_dims = list(self.roi_dims) + [frame.shape[-1]] if len(frame.shape) == 3 else self.roi_dims
+            print('crop dims', crop_dims)
+            print('centroides: ', cX, ', ', cY)
+            print('roi: ', roi_cords)
+            crop = np.zeros(crop_dims, dtype=frame.dtype)
+            down_left_x_roi = 0 if cX - shift_x >= 0 else shift_x - cX + 1
+            down_left_y_roi = 0 if cY - shift_y >= 0 else shift_x - cY + 1
+            # if even then we have one more pixel in the up-right as the center is an even number in the first quadrant
+            # that is because we are using int division, which equivalent to use ceil(x/y)
+            eps = self.roi_dims[0] % 2  # if odd no shift and need only one if even you need one more pixel
+            up_right_x_roi = self.roi_dims[0] if cX + shift_x < frame.shape[1] else shift_x + frame.shape[0] - cX - eps
+            up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[1] else shift_y + frame.shape[1] - cY - eps
+            crop[down_left_y_roi:up_right_y_roi, down_left_x_roi:up_right_x_roi] = \
+                frame[down_left_y:up_right_y, down_left_x:up_right_x]
+
+            return crop, roi_cords
         else:
             return roi_cords
 

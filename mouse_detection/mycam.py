@@ -4,11 +4,11 @@ import cv2
 # cap = cv2.VideoCapture('/Users/ariel/funana/mouse_position_tracking/resouces/mouse_cut.avi')
 cap = cv2.VideoCapture(0)
 
-# fgbg = cv2.createBackgroundSubtractorMOG2()
+fgbg = cv2.createBackgroundSubtractorMOG2()
 # kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
 # fgbg = cv2.createBackgroundSubtractorKNN()
 kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE,(3,3))
-fgbg = cv2.bgsegcreateBackgroundSubtractorGMG()
+# fgbg = cv2.bgsegcreateBackgroundSubtractorGMG()
 
 while(1):
     ret, frame = cap.read()

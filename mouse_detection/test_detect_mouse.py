@@ -1,5 +1,5 @@
 from unittest import TestCase
-from .detect_mouse import MouseVideo
+from mouse_detection.detect_mouse import MouseVideo
 import matplotlib.pyplot as plt
 import random
 
@@ -14,8 +14,20 @@ class TestMouseVideo(TestCase):
             return random.randint(0, self.mouse_video.num_frames - 1)
 
         indices = [gen() for i in range(10)]
-        for index in range(self.mouse_video.num_frames):
+        for index in indices: #range(self.mouse_video.num_frames):
             frame, roi = self.mouse_video.detect_mouse(index, plot=True)
+            plt.imshow(frame)
+            plt.title(f'this is the frame from the index {index} and roi{roi}')
+            plt.show()
+
+    def test_detect_mouse_and_crop(self):
+        # index =96
+        def gen():
+            return random.randint(0, self.mouse_video.num_frames - 1)
+
+        indices = [gen() for i in range(10)]
+        for index in indices: #range(self.mouse_video.num_frames):
+            frame, roi = self.mouse_video.detect_mouse(index, plot=True, crop=True)
             plt.imshow(frame)
             plt.title(f'this is the frame from the index {index}')
             plt.show()
@@ -44,7 +56,7 @@ class TestMouseVideo(TestCase):
             return random.randint(0, self.mouse_video.num_frames)
 
         indices = [gen() for i in range(10)]
-        for index in range(self.mouse_video.num_frames):
+        for index in indices: #range(self.mouse_video.num_frames):
             frame = self.mouse_video.frames_no_bkg[index]
             plt.imshow(frame)
             plt.title(f'this is the frame from the index {index}')

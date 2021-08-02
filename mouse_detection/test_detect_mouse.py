@@ -32,6 +32,19 @@ class TestMouseVideo(TestCase):
             plt.title(f'this is the frame from the index {index}')
             plt.show()
 
+    def test_detect_mouse_and_crop_with_HOG(self):
+        # index =96
+        mouse_video_mog = MouseVideo('resouces/mouse_cut.avi', bkg_method='MOG')
+        def gen():
+            return random.randint(0, self.mouse_video.num_frames - 1)
+
+        indices = [gen() for i in range(10)]
+        for index in indices: #range(self.mouse_video.num_frames):
+            frame, roi = mouse_video_mog.detect_mouse(index, plot=True, crop=True)
+            plt.imshow(frame)
+            plt.title(f'this is the frame from the index {index}')
+            plt.show()
+
     def test_get_no_background(self):
 
         method = self.mouse_video._bkg_method

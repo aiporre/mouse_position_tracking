@@ -163,7 +163,7 @@ class MouseVideo:
             if self._bkg_method == 'MOG':
                 bg_substractor = cv2.createBackgroundSubtractorMOG2()
                 for i in range(self.num_frames):
-                    no_bkg_frame = np.tile(bg_substractor.apply(self.frames[i]), (3, 1, 1)).T
+                    no_bkg_frame = np.tile(bg_substractor.apply(self.frames[i]), (3, 1, 1)).transpose(1, 2, 0)
                     self._frames_no_bkg[i] = no_bkg_frame
             else:
                 bg_substractor = createBackgroundSubtractorTH(bkg_threshold=self.bkg_threshold)
@@ -253,9 +253,13 @@ class MouseVideo:
         for i in range(self.num_frames):
             self.frames[i] = 255 - self.frames[i]
 
-    def save(self, filepath, fps=30):
+    def save(self, filepath, fps=30, no_background=False):
         writer = write_video(filepath, self.frames[0].shape, fps=fps)
-        for frame in self.frames:
-            writer.write(frame.astype('uint8'))
+        if not no_background:
+            for frame in self.frames:
+                writer.write(frame.astype('uint8'))
+        else:
+            for frame in self._frames_no_bkg:
+                writer.write(frame.astype('uint8'))
         writer.release()
 

@@ -2,11 +2,17 @@ from unittest import TestCase
 from mouse_detection.detect_mouse import MouseVideo
 import matplotlib.pyplot as plt
 import random
-
+import os
+from pathlib import Path
 
 class TestMouseVideo(TestCase):
     def setUp(self) -> None:
-        self.mouse_video = MouseVideo('resouces/mouse_cut.avi', bkg_method='TH')
+        self.test_video_mock_up = 'resources/mouse_short_converted_mac.mov'
+        if not os.path.exists(self.test_video_mock_up):
+            self.test_video_mock_up = str(Path(os.path.join("..",self.test_video_mock_up)).resolve())
+        print('path exists: ', os.path.exists(self.test_video_mock_up))
+        self.mouse_video = MouseVideo(self.test_video_mock_up, bkg_method='TH')
+
 
     def test_detect_mouse(self):
         # index =96
@@ -34,7 +40,7 @@ class TestMouseVideo(TestCase):
 
     def test_detect_mouse_and_crop_with_HOG(self):
         # index =96
-        mouse_video_mog = MouseVideo('resouces/mouse_cut.avi', bkg_method='MOG')
+        mouse_video_mog = MouseVideo(self.test_video_mock_up, bkg_method='MOG')
         def gen():
             return random.randint(0, self.mouse_video.num_frames - 1)
 

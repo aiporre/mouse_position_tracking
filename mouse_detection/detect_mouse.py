@@ -174,6 +174,14 @@ class MouseVideo:
 
         return self._frames_no_bkg
 
+    def track_mouse(self):
+        self.coords = []
+        for frame_index in range(self.num_frames):
+            x1, y1, x2, y2 = self.detect_mouse(frame_index)
+            cX, cY = (x1 + x2)//2 , (y1 + y2)//2
+            self.coords.append(cX, cY)
+        return self.coords
+
     def detect_mouse(self, frame_index, plot=False, crop=False):
         """
         Calculate bounding box containing the mouse location.

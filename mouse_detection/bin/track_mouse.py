@@ -1,25 +1,27 @@
 from mouse_detection import MouseVideo
 import argparse
 from pathlib import Path
-
-
+from tqdm import tqdm
 def track_mouse(directory='.', extension='avi', overwrite=False, fps=12, method='MOG', roi_dims=(260,260), remove_dark_channel=False):
     directory = Path(directory).resolve()
 
-    for f in directory.rglob('*.' + extension):
+    for f in tqdm(directory.rglob('*.' + extension)):
         print('tracking in video : ', f)
-        f = str(f)
-        if f.endswith('-track.' + extension):
-            continue
-        mouse_video = MouseVideo(f, bkg_method=method, roi_dims=roi_dims)
-        if remove_dark_channel:
-            mouse_video.remove_darkchannel(inplace=True)
+        try:
+            f = str(f)
+            if f.endswith('-track.' + extension):
+                continue
+            mouse_video = MouseVideo(f, bkg_method=method, roi_dims=roi_dims)
+            if remove_dark_channel:
+                mouse_video.remove_darkchannel(inplace=True)
 
-        if overwrite:
-            mouse_video.save_rois(f, fps=fps)
-        else:
-            f_new = f.replace("." + extension, '-track.' + extension)
-            mouse_video.save_rois(f_new, fps=fps)
+            if overwrite:
+                mouse_video.save_rois(f, fps=fps)
+            else:
+                f_new = f.replace("." + extension, '-track.' + extension)
+                mouse_video.save_rois(f_new, fps=fps)
+        except:
+            print('Failed to process file: ', f)
 
 def main():
     parser = argparse.ArgumentParser(description="Script to remove dark channel of video in directory")

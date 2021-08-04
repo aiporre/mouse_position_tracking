@@ -3,6 +3,8 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+
+import tqdm
 from scipy import interpolate
 
 from mouse_detection.tracker import EuclideanDistTracker
@@ -161,7 +163,7 @@ class MouseVideo:
 
     def remove_darkchannel(self, inplace = False):
         darkframes = np.empty_like(self.frames)
-        for i, f in enumerate(self.frames):
+        for i, f in tqdm.tqdm(enumerate(self.frames),desc="Removing darkchannel"):
             darkframes[i] = _remove_blackchannel(f)
         if inplace:
             self.frames = darkframes
@@ -191,7 +193,6 @@ class MouseVideo:
                 xy1, xy2 = self.detect_mouse(frame_index)
                 cX, cY = (xy1[0] + xy2[0])//2 , (xy1[1] + xy2[1])//2
             except ValueError as e:
-                print('error: ', e)
                 cX, cY = np.nan, np.nan
                 # raise e
             self.coords.append((cX, cY))
@@ -226,7 +227,6 @@ class MouseVideo:
                 cX = int(centroid["m10"] / centroid["m00"])
                 cY = int(centroid["m01"] / centroid["m00"])
             except Exception as e:
-                print(centroid)
                 raise e
         else:
             mask = no_background_frame[...,0]
@@ -268,7 +268,6 @@ class MouseVideo:
     def calculate_roi(self, frame_index, cX, cY, plot=False, crop=False):
         # put text and highlight the center
         frame = self.frames[frame_index]
-        print('FAME SHAPE: ', frame.shape)
         shift_y, shift_x = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
         epsx = 1 if self.roi_dims[0] % 2 == 0 else 0 # if odd no shift and need only one if even you need one more pixel
         epsy = 1 if self.roi_dims[1] % 2 == 0 else 0 # same for y
@@ -283,9 +282,6 @@ class MouseVideo:
             return cv2.rectangle(frame, (down_left_x, down_left_y), (up_right_x, up_right_y), 255, 2), roi_cords
         elif plot and crop:
             crop_dims = list(self.roi_dims) + [frame.shape[-1]] if len(frame.shape) == 3 else self.roi_dims
-            print('crop dims', crop_dims)
-            print('centroides: ', cX, ', ', cY)
-            print('roi: ', roi_cords)
             crop = np.zeros(crop_dims, dtype=frame.dtype)
             # this doesn't depend on the center even or odd as it is on the left side.
             # Doesn't need +1 as B-Cx=Delta is counting abs from 1 i.e. includes +1 implicitly
@@ -293,15 +289,11 @@ class MouseVideo:
             down_left_y_roi = 0 if cY - shift_y >= 0 else shift_y - cY - epsy
             # if even then we have one more pixel in the up-right as the center is an even number in the first quadrant
             # that is because we are using int division, which equivalent to use ceil(x/y)
-            print('eps x = ', epsx, 'eps y = ', epsy)
             # gamma = frame.shape[0] - 1 - cX from cx to the end of frame the rest is zeros
             epsx = self.roi_dims[0] % 2  # if odd no shift and need only one if even you need one more pixel
             epsy = self.roi_dims[1] % 2  # same for y
             up_right_x_roi = self.roi_dims[0] if cX + shift_x < frame.shape[1] else shift_x + frame.shape[1] - 1 - cX + epsx
             up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[0] else shift_y + frame.shape[0] - 1 - cY + epsy
-            print(f"frames in ROI {down_left_y_roi}:{up_right_y_roi}, {down_left_x_roi}:{up_right_x_roi}")
-            print(f"frames in IMAGE {down_left_y}:{up_right_y}, {down_left_x}:{up_right_x}")
-
             crop[down_left_y_roi:up_right_y_roi, down_left_x_roi:up_right_x_roi] = \
                 frame[down_left_y:up_right_y, down_left_x:up_right_x]
             return crop, roi_cords
@@ -350,7 +342,6 @@ class MouseVideo:
         for index in range(len(coords)):  # range(self.mouse_video.num_frames):
             cX, cY = coords[index]
             frame, roi = self.calculate_roi(index, cX, cY, plot=True, crop=True)
-            print('FAME DISM: ', frame.shape)
             writer.write(frame.astype('uint8'))
         writer.release()
 

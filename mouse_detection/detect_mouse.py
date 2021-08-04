@@ -273,10 +273,12 @@ class MouseVideo:
         # put text and highlight the center
         frame = self.frames[frame_index]
         shift_x, shift_y = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
-        down_left_x = 0 if cX - shift_x < 0 else cX - shift_x
-        down_left_y = 0 if cY - shift_y < 0 else cY - shift_y
-        up_right_x = frame.shape[0] if cX + shift_x >= frame.shape[0] else cX + shift_x
-        up_right_y = frame.shape[1] if cY + shift_y >= frame.shape[1] else cY + shift_y
+        epsx = 1 if self.roi_dims[0] % 2 == 0 else 0 # if odd no shift and need only one if even you need one more pixel
+        epsy = 1 if self.roi_dims[1] % 2 == 0 else 0 # same for y
+        down_left_x = 0 if cX - shift_x < 0 else cX - shift_x + epsx
+        down_left_y = 0 if cY - shift_y < 0 else cY - shift_y + epsy
+        up_right_x = frame.shape[0] if cX + shift_x >= frame.shape[0] else cX + shift_x + 1
+        up_right_y = frame.shape[1] if cY + shift_y >= frame.shape[1] else cY + shift_y + 1
         roi_cords = (down_left_x, down_left_y), (up_right_x, up_right_y)
         if plot and not crop:
             cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
@@ -288,13 +290,21 @@ class MouseVideo:
             print('centroides: ', cX, ', ', cY)
             print('roi: ', roi_cords)
             crop = np.zeros(crop_dims, dtype=frame.dtype)
-            down_left_x_roi = 0 if cX - shift_x >= 0 else shift_x - cX + 1
-            down_left_y_roi = 0 if cY - shift_y >= 0 else shift_x - cY + 1
+            # this doesn't depend on the center even or odd as it is on the left side.
+            # Doesn't need +1 as B-Cx=Delta is counting abs from 1 i.e. includes +1 implicitly
+            down_left_x_roi = 0 if cX - shift_x >= 0 else shift_x - cX - epsx
+            down_left_y_roi = 0 if cY - shift_y >= 0 else shift_y - cY - epsy
             # if even then we have one more pixel in the up-right as the center is an even number in the first quadrant
             # that is because we are using int division, which equivalent to use ceil(x/y)
-            eps = self.roi_dims[0] % 2  # if odd no shift and need only one if even you need one more pixel
-            up_right_x_roi = self.roi_dims[0] if cX + shift_x < frame.shape[1] else shift_x + frame.shape[0] - cX - eps
-            up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[1] else shift_y + frame.shape[1] - cY - eps
+            print('eps x = ', epsx, 'eps y = ', epsy)
+            # gamma = frame.shape[0] - 1 - cX from cx to the end of frame the rest is zeros
+            epsx = self.roi_dims[0] % 2  # if odd no shift and need only one if even you need one more pixel
+            epsy = self.roi_dims[1] % 2  # same for y
+            up_right_x_roi = self.roi_dims[0] if cX + shift_x < frame.shape[0] else shift_x + frame.shape[0] - 1 - cX + epsx
+            up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[1] else shift_y + frame.shape[1] - 1 - cY + epsy
+            print(f"frames in ROI {down_left_y_roi}:{up_right_y_roi}, {down_left_x_roi}:{up_right_x_roi}")
+            print(f"frames in IMAGE {down_left_y}:{up_right_y}, {down_left_x}:{up_right_x}")
+
             crop[down_left_y_roi:up_right_y_roi, down_left_x_roi:up_right_x_roi] = \
                 frame[down_left_y:up_right_y, down_left_x:up_right_x]
             return crop, roi_cords

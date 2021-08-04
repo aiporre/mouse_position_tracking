@@ -3,6 +3,10 @@ import cv2
 import numpy as np
 import matplotlib.pyplot as plt
 import os
+from scipy import interpolate
+
+from mouse_detection.tracker import EuclideanDistTracker
+
 
 def write_video(filepath, shape, fps=30):
     fourcc = cv2.VideoWriter_fourcc('M', 'J', 'P', 'G')
@@ -139,6 +143,10 @@ def _remove_blackchannel(img):
 
 
 class MouseVideo:
+    # morphology filters
+    kernel = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (3, 3))
+    kernel10 = cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (10, 10))
+
     def __init__(self, vpath, bkg_method='MOG', bkg_threshold=0.93, roi_dims=(260, 260)):
         assert os.path.exists(vpath), "Input video path is non-existing or bad argument {}".format(vpath)
         self.vpath = vpath
@@ -148,6 +156,8 @@ class MouseVideo:
         self._bkg_method = bkg_method
         self.bkg_threshold = bkg_threshold
         self.roi_dims = roi_dims
+        self.tracker = EuclideanDistTracker()
+
 
     def remove_darkchannel(self, inplace = False):
         darkframes = np.empty_like(self.frames)
@@ -174,12 +184,28 @@ class MouseVideo:
 
         return self._frames_no_bkg
 
-    def track_mouse(self):
+    def track_mouse(self, plot=False):
         self.coords = []
         for frame_index in range(self.num_frames):
-            x1, y1, x2, y2 = self.detect_mouse(frame_index)
-            cX, cY = (x1 + x2)//2 , (y1 + y2)//2
-            self.coords.append(cX, cY)
+            try:
+                xy1, xy2 = self.detect_mouse(frame_index)
+                cX, cY = (xy1[0] + xy2[0])//2 , (xy1[1] + xy2[1])//2
+            except Exception as e:
+                print('error: ', e)
+                cX, cY = np.nan, np.nan
+            self.coords.append((cX, cY))
+        xx = np.array([x[0] for x in self.coords if not np.isnan(x).sum()>0])
+        yy = np.array([x[1] for x in self.coords if not np.isnan(x).sum()>0])
+        ii = np.array([i for i, x in enumerate(self.coords) if not np.isnan(x).sum()>0])
+        print('xx = ', xx)
+        print('ii = ', ii)
+        fx = interpolate.interp1d(ii, xx, bounds_error=False, fill_value=(xx[0], xx[-1]))
+        fy = interpolate.interp1d(ii, yy, bounds_error=False, fill_value=(yy[0], yy[-1]))
+        xx = fx(np.arange(0, len(self.coords)))
+        yy = fy(np.arange(0, len(self.coords)))
+        self.coords=[]
+        for x, y in zip(xx, yy):
+            self.coords.append((x,y))
         return self.coords
 
     def detect_mouse(self, frame_index, plot=False, crop=False):
@@ -192,20 +218,50 @@ class MouseVideo:
         """
         assert frame_index < self.num_frames, f' {frame_index} < {self.num_frames}'
         no_background_frame = self.frames_no_bkg[frame_index]
-        gray_image = cv2.cvtColor(no_background_frame, cv2.COLOR_BGR2GRAY)
-        ret, th1 = cv2.threshold(gray_image, 127, 255, 0)
+        if self._bkg_method == "TH":
+            gray_image = cv2.cvtColor(no_background_frame, cv2.COLOR_BGR2GRAY)
+            ret, th1 = cv2.threshold(gray_image, 127, 255, 0)
+            centroid = cv2.moments(th1)
+            # calculate x,y coordinate of center
+            try:
+                cX = int(centroid["m10"] / centroid["m00"])
+                cY = int(centroid["m01"] / centroid["m00"])
+            except Exception as e:
+                print(centroid)
+                plt.imshow(no_background_frame)
+                plt.show()
+                raise e
+        else:
+            print('++++> type of frame', no_background_frame[...,0].dtype)
+            mask = no_background_frame[...,0]
+            _, mask = cv2.threshold(mask, 254, 255, cv2.THRESH_BINARY)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_ERODE, self.kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_OPEN, self.kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_CLOSE, self.kernel)
+            mask = cv2.morphologyEx(mask, cv2.MORPH_DILATE, self.kernel10)
 
-        centroid = cv2.moments(th1)
-        # calculate x,y coordinate of center
-        try:
-            cX = int(centroid["m10"] / centroid["m00"])
-            cY = int(centroid["m01"] / centroid["m00"])
-        except Exception as e:
-            print(centroid)
-            plt.imshow(no_background_frame)
-            plt.show()
-            raise e
-
+            contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
+            detections = []
+            for cnt in contours:
+                area = cv2.contourArea(cnt)
+                frame_detections = []
+                if area > 400:
+                    x, y, h, w = cv2.boundingRect(cnt)
+                    frame_detections.append([x, y, h, w])
+                if len(frame_detections) > 0:
+                    detections_avg = np.mean(frame_detections, axis=0)
+                    detections.append(detections_avg.astype(int).tolist())
+            # detection
+            boxes_ids = self.tracker.update(detections)
+            frame_coords = []
+            for box_id in boxes_ids:
+                x, y, w, h, id = box_id
+                frame_coords.append([x, y, w, h])
+            if len(frame_coords) > 0:
+                x, y ,h , w = np.mean(frame_coords, axis=0)
+                cX, cY = (x + x + w)//2, (y + y + h)//2
+            else:
+                raise ValueError('Frame has not detections')
         # put text and highlight the center
         frame = self.frames[frame_index]
         shift_x, shift_y = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)

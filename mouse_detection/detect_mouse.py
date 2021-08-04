@@ -184,15 +184,16 @@ class MouseVideo:
 
         return self._frames_no_bkg
 
-    def track_mouse(self, plot=False):
+    def track_mouse(self, plot=False, crop=False):
         self.coords = []
         for frame_index in range(self.num_frames):
             try:
                 xy1, xy2 = self.detect_mouse(frame_index)
                 cX, cY = (xy1[0] + xy2[0])//2 , (xy1[1] + xy2[1])//2
-            except Exception as e:
+            except ValueError as e:
                 print('error: ', e)
                 cX, cY = np.nan, np.nan
+                # raise e
             self.coords.append((cX, cY))
         xx = np.array([x[0] for x in self.coords if not np.isnan(x).sum()>0])
         yy = np.array([x[1] for x in self.coords if not np.isnan(x).sum()>0])
@@ -262,6 +263,14 @@ class MouseVideo:
                 cX, cY = (x + x + w)//2, (y + y + h)//2
             else:
                 raise ValueError('Frame has not detections')
+        if plot:
+            frame_plot, roi_coords = self.calculate_roi(frame_index, cX, cY, plot=plot, crop=crop)
+            return frame_plot, roi_coords
+        else:
+            roi_coords = self.calculate_roi(frame_index, cX, cY, plot=plot, crop=crop)
+            return roi_coords
+
+    def calculate_roi(self, frame_index, cX, cY, plot=False, crop=False):
         # put text and highlight the center
         frame = self.frames[frame_index]
         shift_x, shift_y = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
@@ -289,7 +298,6 @@ class MouseVideo:
             up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[1] else shift_y + frame.shape[1] - cY - eps
             crop[down_left_y_roi:up_right_y_roi, down_left_x_roi:up_right_x_roi] = \
                 frame[down_left_y:up_right_y, down_left_x:up_right_x]
-
             return crop, roi_cords
         else:
             return roi_cords

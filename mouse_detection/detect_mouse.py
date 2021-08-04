@@ -259,7 +259,7 @@ class MouseVideo:
                 frame_coords.append([x, y, w, h])
             if len(frame_coords) > 0:
                 x, y ,h , w = np.mean(frame_coords, axis=0)
-                cX, cY = (x + x + w)//2, (y + y + h)//2
+                cX, cY = int(x + x + w)//2, int(y + y + h)//2
             else:
                 raise ValueError('Frame has not detections')
         if plot:

@@ -272,13 +272,14 @@ class MouseVideo:
     def calculate_roi(self, frame_index, cX, cY, plot=False, crop=False):
         # put text and highlight the center
         frame = self.frames[frame_index]
-        shift_x, shift_y = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
+        print('FAME SHAPE: ', frame.shape)
+        shift_y, shift_x = (self.roi_dims[0] // 2, self.roi_dims[1] // 2)
         epsx = 1 if self.roi_dims[0] % 2 == 0 else 0 # if odd no shift and need only one if even you need one more pixel
         epsy = 1 if self.roi_dims[1] % 2 == 0 else 0 # same for y
         down_left_x = 0 if cX - shift_x < 0 else cX - shift_x + epsx
         down_left_y = 0 if cY - shift_y < 0 else cY - shift_y + epsy
-        up_right_x = frame.shape[0] if cX + shift_x >= frame.shape[0] else cX + shift_x + 1
-        up_right_y = frame.shape[1] if cY + shift_y >= frame.shape[1] else cY + shift_y + 1
+        up_right_x = frame.shape[1] if cX + shift_x >= frame.shape[1] else cX + shift_x + 1
+        up_right_y = frame.shape[0] if cY + shift_y >= frame.shape[0] else cY + shift_y + 1
         roi_cords = (down_left_x, down_left_y), (up_right_x, up_right_y)
         if plot and not crop:
             cv2.circle(frame, (cX, cY), 5, (255, 255, 255), -1)
@@ -300,8 +301,8 @@ class MouseVideo:
             # gamma = frame.shape[0] - 1 - cX from cx to the end of frame the rest is zeros
             epsx = self.roi_dims[0] % 2  # if odd no shift and need only one if even you need one more pixel
             epsy = self.roi_dims[1] % 2  # same for y
-            up_right_x_roi = self.roi_dims[0] if cX + shift_x < frame.shape[0] else shift_x + frame.shape[0] - 1 - cX + epsx
-            up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[1] else shift_y + frame.shape[1] - 1 - cY + epsy
+            up_right_x_roi = self.roi_dims[0] if cX + shift_x < frame.shape[1] else shift_x + frame.shape[1] - 1 - cX + epsx
+            up_right_y_roi = self.roi_dims[1] if cY + shift_y < frame.shape[0] else shift_y + frame.shape[0] - 1 - cY + epsy
             print(f"frames in ROI {down_left_y_roi}:{up_right_y_roi}, {down_left_x_roi}:{up_right_x_roi}")
             print(f"frames in IMAGE {down_left_y}:{up_right_y}, {down_left_x}:{up_right_x}")
 

@@ -112,22 +112,20 @@ class TestMouseVideo(TestCase):
         plt.show()
 
     def test_track_mouse_MOG_plotting(self):
-        # method = 'TH'
+        method = 'TH'
         mouse_video_mog = MouseVideo(self.test_video_mock_up, bkg_method='MOG')
         coords = mouse_video_mog.track_mouse()
-        print(coords)
-        plt.plot(coords)
-        plt.show()
-        #
-        # def gen():
-        #     return random.randint(0, self.mouse_video.num_frames)
-        #
-        # indices = [gen() for i in range(10)]
-        # for index in indices:  # range(self.mouse_video.num_frames):
-        #     frame = self.mouse_video.frames_no_bkg[index]
-        #     plt.imshow(frame)
-        #     plt.title(f'this is the frame from the index {index}')
-        #     plt.show()
-        #
-        # self.mouse_video._bkg_method = method
-        # self.mouse_video.frames_no_bkg = None
+
+        def gen():
+            return random.randint(0, self.mouse_video.num_frames)
+
+        indices = [gen() for i in range(10)]
+        for index in indices:  # range(self.mouse_video.num_frames):
+            cX, cY = coords[index]
+            frame, roi =mouse_video_mog.calculate_roi(index, cX, cY, plot=True)
+            plt.imshow(frame)
+            plt.title(f'this is the frame from the index {index} \n method MOG and roi {roi}')
+            plt.show()
+
+        self.mouse_video._bkg_method = method
+        self.mouse_video.frames_no_bkg = None

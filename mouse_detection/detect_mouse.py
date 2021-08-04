@@ -206,7 +206,7 @@ class MouseVideo:
         yy = fy(np.arange(0, len(self.coords)))
         self.coords=[]
         for x, y in zip(xx, yy):
-            self.coords.append((x,y))
+            self.coords.append((x.astype(int),y.astype(int)))
         return self.coords
 
     def detect_mouse(self, frame_index, plot=False, crop=False):
@@ -233,7 +233,6 @@ class MouseVideo:
                 plt.show()
                 raise e
         else:
-            print('++++> type of frame', no_background_frame[...,0].dtype)
             mask = no_background_frame[...,0]
             _, mask = cv2.threshold(mask, 254, 255, cv2.THRESH_BINARY)
             mask = cv2.morphologyEx(mask, cv2.MORPH_ERODE, self.kernel)

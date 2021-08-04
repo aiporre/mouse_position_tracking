@@ -184,7 +184,7 @@ class MouseVideo:
 
         return self._frames_no_bkg
 
-    def track_mouse(self, plot=False, crop=False):
+    def track_mouse(self):
         self.coords = []
         for frame_index in range(self.num_frames):
             try:
@@ -198,8 +198,6 @@ class MouseVideo:
         xx = np.array([x[0] for x in self.coords if not np.isnan(x).sum()>0])
         yy = np.array([x[1] for x in self.coords if not np.isnan(x).sum()>0])
         ii = np.array([i for i, x in enumerate(self.coords) if not np.isnan(x).sum()>0])
-        print('xx = ', xx)
-        print('ii = ', ii)
         fx = interpolate.interp1d(ii, xx, bounds_error=False, fill_value=(xx[0], xx[-1]))
         fy = interpolate.interp1d(ii, yy, bounds_error=False, fill_value=(yy[0], yy[-1]))
         xx = fx(np.arange(0, len(self.coords)))
@@ -229,8 +227,6 @@ class MouseVideo:
                 cY = int(centroid["m01"] / centroid["m00"])
             except Exception as e:
                 print(centroid)
-                plt.imshow(no_background_frame)
-                plt.show()
                 raise e
         else:
             mask = no_background_frame[...,0]
@@ -343,5 +339,18 @@ class MouseVideo:
         else:
             for frame in self._frames_no_bkg:
                 writer.write(frame.astype('uint8'))
+        writer.release()
+
+    def save_rois(self, filepath, fps=30):
+        coords = self.track_mouse()
+        frame = self.frames[0]
+        crop_dims = list(self.roi_dims) + [frame.shape[-1]] if len(frame.shape) == 3 else self.roi_dims
+
+        writer = write_video(filepath, crop_dims, fps=fps)
+        for index in range(len(coords)):  # range(self.mouse_video.num_frames):
+            cX, cY = coords[index]
+            frame, roi = self.calculate_roi(index, cX, cY, plot=True, crop=True)
+            print('FAME DISM: ', frame.shape)
+            writer.write(frame.astype('uint8'))
         writer.release()
 

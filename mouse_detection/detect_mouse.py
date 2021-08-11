@@ -112,8 +112,10 @@ def read_video(video_path, block=False, num_blocks=None, index=None):
     if not block:
         buf = np.empty((frameCount, frameHeight, frameWidth, 3), np.dtype('uint8'))
         while fc < frameCount and ret:
-            ret, buf[fc] = cap.read()
-            fc += 1
+            ret, ff = cap.read()
+            if ret:
+                buf[fc] = ff
+                fc += 1
         cap.release()
     else:
         # calculate block indices:
